@@ -85,4 +85,24 @@ router.post('/transaction', async (req, res) => {
     }
 });
 
+// Crear nueva cuenta
+router.post('/create', async (req, res) => {
+    const { client_id, acc_type, currency } = req.body;
+
+    if (!client_id || !acc_type || !currency) {
+        return res.status(400).json({ message: "Faltan datos requeridos" });
+    }
+
+    try {
+        await db.query(
+            'INSERT INTO account (client_id, balance, acc_type, currency, branch_id) VALUES (?, ?, ?, ?, ?)',
+            [client_id, 0, acc_type, currency, 1]
+        );
+        res.json({ success: true, message: "Cuenta creada exitosamente" });
+    } catch (error) {
+        console.error("Error creando cuenta:", error);
+        res.status(500).json({ error: "Error al crear la cuenta" });
+    }
+});
+
 module.exports = router;

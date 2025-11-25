@@ -54,9 +54,17 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ success: false, message: 'The email is already registered' });
         }
 
-        const sql = 'INSERT INTO clients (name, lastname, email, password, address, phone) VALUES (?, ?, ?, ?, ?, ?)'; await db.query(sql, [name, lastname, email, password, address, phone]);
+        const sql = 'INSERT INTO clients (name, lastname, email, password, address, phone) VALUES (?, ?, ?, ?, ?, ?)';
+        const [result] = await db.query(sql, [name, lastname, email, password, address, phone]);
 
-        res.json({ success: true, message: 'User created!' });
+        // Crear cuenta por defecto (Ahorro MXN)
+        const clientId = result.insertId;
+        await db.query(
+            'INSERT INTO account (client_id, balance, acc_type, currency, branch_id) VALUES (?, ?, ?, ?, ?)',
+            [clientId, 0, 'Ahorro', 'MXN', 1]
+        );
+
+        res.json({ success: true, message: 'User created with default account!' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
