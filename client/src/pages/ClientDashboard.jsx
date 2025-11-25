@@ -10,7 +10,7 @@ export default function ClientDashboard({ user, onLogout }) {
     // 1. Al cargar, buscamos las cuentas de este usuario
     useEffect(() => {
         if (user && user.client_id) {
-            fetch(`http://localhost:3000/api/cuentas/usuario/${user.client_id}`)
+            fetch(`http://localhost:3000/api/accounts/usuario/${user.client_id}`)
                 .then(res => res.json())
                 .then(data => {
                     setCuentas(data);
@@ -26,7 +26,7 @@ export default function ClientDashboard({ user, onLogout }) {
     // 2. Cada vez que cambiamos de cuenta, buscamos sus movimientos
     useEffect(() => {
         if (cuentaSeleccionada) {
-            fetch(`http://localhost:3000/api/cuentas/${cuentaSeleccionada.acc_id}/movimientos`)
+            fetch(`http://localhost:3000/api/accounts/${cuentaSeleccionada.acc_id}/movimientos`)
                 .then(res => res.json())
                 .then(data => setMovimientos(data))
                 .catch(err => console.error("Error cargando movimientos:", err));
@@ -139,7 +139,7 @@ export default function ClientDashboard({ user, onLogout }) {
                         </div>
                         <button
                             onClick={() => {
-                                fetch('http://localhost:3000/api/prestamos/solicitar', {
+                                fetch('http://localhost:3000/api/loans/solicitar', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({

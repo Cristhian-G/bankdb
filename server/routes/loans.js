@@ -14,22 +14,69 @@ router.get('/pending', async (req, res) => {
 });
 
 router.post('/approve/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const emp_id_approved = 1;
-        const todayDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const { id } = req.params;
+    const emp_id_approved = 1; // ID del empleado que aprueba (podría venir del token)
 
-        try {
-            await db.query(
-                'UPDATE loans SET approve_date = ?, emp_id_approved = ? WHERE loan_id = ?',
-                [todayDate, emp_id_approved, id]
-            );
-            res.json({ message: 'Loan approved successfully' });
-        } catch (error) {
-            res.status(500).json({ error: error.message });
+    let connection;
+
+    try {
+        // Obtenemos una conexión exclusiva para hacer una transacción segura
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        // 1. Obtener datos del préstamo para saber monto y plazo
+        const [loans] = await connection.query('SELECT * FROM loans WHERE loan_id = ?', [id]);
+
+        if (loans.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ message: 'Préstamo no encontrado' });
         }
+        const loan = loans[0];
+
+        // 2. Calcular fechas
+        const today = new Date();
+        const disburDate = today.toISOString().slice(0, 10); // YYYY-MM-DD
+
+        // Calcular vencimiento sumando los meses del plazo
+        const expDate = new Date(today);
+        expDate.setMonth(expDate.getMonth() + loan.month_term);
+        const expirationDate = expDate.toISOString().slice(0, 10);
+
+        // 3. Actualizar el préstamo (Aprobar, Desembolsar, Vencimiento)
+        await connection.query(
+            'UPDATE loans SET approve_date = ?, disbur_date = ?, expiration_date = ?, emp_id_approved = ? WHERE loan_id = ?',
+            [disburDate, disburDate, expirationDate, emp_id_approved, id]
+        );
+
+        // 4. Lógica de Desembolso: Depositar el dinero en la cuenta del cliente
+        // Buscamos la primera cuenta activa del cliente
+        const [accounts] = await connection.query('SELECT acc_id FROM account WHERE client_id = ? LIMIT 1', [loan.client_id]);
+
+        if (accounts.length > 0) {
+            const acc_id = accounts[0].acc_id;
+
+            // A) Actualizar saldo de la cuenta
+            await connection.query('UPDATE account SET balance = balance + ? WHERE acc_id = ?', [loan.amount_org, acc_id]);
+
+            // B) Registrar la transacción en el historial
+            await connection.query(
+                'INSERT INTO transactions (account_id, trn_type, description, date_time, amount) VALUES (?, ?, ?, ?, ?)',
+                [acc_id, 'DEPOSITO', `Desembolso Préstamo #${id}`, new Date(), loan.amount_org]
+            );
+        }
+
+        // Confirmar todos los cambios
+        await connection.commit();
+        res.json({ message: 'Préstamo aprobado y desembolsado correctamente' });
+
     } catch (error) {
+        // Si algo falla, revertimos todo
+        if (connection) await connection.rollback();
+        console.error("Error en aprobación:", error);
         res.status(500).json({ error: error.message });
+    } finally {
+        // Liberar la conexión
+        if (connection) connection.release();
     }
 });
 
