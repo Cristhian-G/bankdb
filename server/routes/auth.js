@@ -59,9 +59,24 @@ router.post('/register', async (req, res) => {
 
         // Crear cuenta por defecto (Ahorro MXN)
         const clientId = result.insertId;
-        await db.query(
+        const [accResult] = await db.query(
             'INSERT INTO account (client_id, balance, acc_type, currency, branch_id) VALUES (?, ?, ?, ?, ?)',
             [clientId, 0, 'Ahorro', 'MXN', 1]
+        );
+
+        const accId = accResult.insertId;
+
+        // Generar tarjeta de débito por defecto
+        const cardNumber = '4' + Math.floor(Math.random() * 1000000000000000).toString().padStart(15, '0');
+        const cvv = Math.floor(Math.random() * 900 + 100).toString();
+        const today = new Date();
+        const year = today.getFullYear() + 5;
+        const month = (today.getMonth() + 1).toString().padStart(2, '0');
+        const expirationDate = `${year}-${month}-01`;
+
+        await db.query(
+            'INSERT INTO card (acc_id, card_num, cvv, exp_date, card_type) VALUES (?, ?, ?, ?, ?)',
+            [accId, cardNumber, cvv, expirationDate, 'Debit']
         );
 
         res.json({ success: true, message: 'User created with default account!' });

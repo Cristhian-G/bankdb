@@ -5,6 +5,7 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
     const [transactions, setTransactions] = useState([]);
     const [insurances, setInsurances] = useState([]);
     const [loans, setLoans] = useState([]);
+    const [cards, setCards] = useState([]);
     const [accSelected, setAccSelection] = useState(null);
 
     // Estados para Modals y Menú
@@ -12,6 +13,7 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
     const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
     const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
     const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+    const [isCardsModalOpen, setIsCardsModalOpen] = useState(false);
 
     // Estado para Solicitud de Préstamo
     const [loanAmount, setLoanAmount] = useState(0);
@@ -26,6 +28,15 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
     // Estado para Abrir Nueva Cuenta
     const [newAccType, setNewAccType] = useState('Savings');
     const [currencyNewAccount, setCurrencyNewAccount] = useState('MXN');
+
+    // Estado para Tarjetas
+    const [newCardAccId, setNewCardAccId] = useState('');
+    const [visibleCardId, setVisibleCardId] = useState(null);
+
+    // Estado para Pago de Préstamo
+    const [paymentAmount, setPaymentAmount] = useState('');
+    const [paymentAccId, setPaymentAccId] = useState('');
+    const [selectedLoanId, setSelectedLoanId] = useState(null);
 
     // Estado para Contratar Seguro
     const [isInsuranceModalOpen, setIsInsuranceModalOpen] = useState(false);
@@ -126,6 +137,12 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 .then(res => res.json())
                 .then(data => setLoans(data))
                 .catch(err => console.error("Error loading loans:", err));
+
+            // Cargar tarjetas
+            fetch(`http://localhost:3000/api/cards/client/${user.client_id}`)
+                .then(res => res.json())
+                .then(data => setCards(data))
+                .catch(err => console.error("Error loading cards:", err));
         }
     };
 
@@ -174,7 +191,7 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                                 onClick={() => { setIsLoanModalOpen(true); setIsMenuOpen(false); }}
                                 className="block w-full text-left px-4 py-2 hover:bg-gray-100 transition"
                             >
-                                💰 Request Loan
+                                💰 Loans and Credit
                             </button>
                             <button
                                 onClick={() => { setIsTransactionModalOpen(true); setIsMenuOpen(false); }}
@@ -187,6 +204,12 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                                 className="block w-full text-left px-4 py-2 hover:bg-gray-100 transition"
                             >
                                 💳 Open New Account
+                            </button>
+                            <button
+                                onClick={() => { setIsCardsModalOpen(true); setIsMenuOpen(false); }}
+                                className="block w-full text-left px-4 py-2 hover:bg-gray-100 transition"
+                            >
+                                💳 My Cards
                             </button>
                             <button
                                 onClick={() => { setIsInsuranceModalOpen(true); setIsMenuOpen(false); }}
@@ -212,80 +235,150 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 </div>
             </nav>
 
-            <div className="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="max-w-6xl mx-auto p-6 space-y-8">
 
-                {/* Columna Izquierda: Mis Cuentas */}
-                <div className="md:col-span-1 space-y-4">
+                {/* Section 1: My Accounts (Horizontal Scroll) */}
+                <div>
                     <h2 className="text-xl font-bold text-gray-700 mb-4">My Accounts</h2>
-                    {accounts.map(cuenta => (
-                        <div
-                            key={cuenta.acc_id}
-                            onClick={() => setAccSelection(cuenta)}
-                            className={`p-6 rounded-xl shadow-md cursor-pointer transition transform hover:scale-105 border-l-4 ${accSelected?.acc_id === cuenta.acc_id
-                                ? 'bg-white border-blue-500 ring-2 ring-blue-100'
-                                : 'bg-white border-transparent opacity-80'
-                                }`}
-                        >
-                            <p className="text-gray-500 text-sm uppercase font-bold tracking-wider">{cuenta.acc_type}</p>
-                            <p className="text-3xl font-bold text-gray-800 my-2">${cuenta.balance}</p>
-                            <p className="text-gray-400 text-xs">Account: ****{cuenta.acc_id}</p>
-                            <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mt-2">
-                                {cuenta.currency}
-                            </span>
-                        </div>
-                    ))}
-
-                    {accounts.length === 0 && (
-                        <p className="text-gray-500 italic">No active accounts.</p>
-                    )}
-
-                    <h2 className="text-xl font-bold text-gray-700 mt-8 mb-4">My Insurances</h2>
-                    {insurances.map(seguro => (
-                        <div key={seguro.ins_id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
-                            <div>
-                                <p className="font-bold text-gray-800">{seguro.ins_type}</p>
-                                <p className="text-xs text-gray-500">Beneficiary: {seguro.beneficiary}</p>
+                    <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-hide">
+                        {accounts.map(cuenta => (
+                            <div
+                                key={cuenta.acc_id}
+                                onClick={() => setAccSelection(cuenta)}
+                                className={`min-w-[300px] p-6 rounded-xl shadow-md cursor-pointer transition transform hover:scale-105 border-l-4 ${accSelected?.acc_id === cuenta.acc_id
+                                    ? 'bg-white border-blue-500 ring-2 ring-blue-100'
+                                    : 'bg-white border-transparent opacity-80'
+                                    }`}
+                            >
+                                <p className="text-gray-500 text-sm uppercase font-bold tracking-wider">{cuenta.acc_type}</p>
+                                <p className="text-3xl font-bold text-gray-800 my-2">${cuenta.balance}</p>
+                                <p className="text-gray-400 text-xs">Account: ****{cuenta.acc_id}</p>
+                                <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mt-2">
+                                    {cuenta.currency}
+                                </span>
                             </div>
-                            <span className="text-green-600 font-bold text-sm">${seguro.premium}</span>
-                        </div>
-                    ))}
-                    {insurances.length === 0 && (
-                        <p className="text-gray-500 italic text-sm">No insurance contracts.</p>
-                    )}
+                        ))}
+                        {accounts.length === 0 && (
+                            <p className="text-gray-500 italic">No active accounts.</p>
+                        )}
+                    </div>
                 </div>
 
-                {/* Columna Derecha: Historial de Movimientos */}
-                <div className="md:col-span-2">
-                    <div className="bg-white rounded-xl shadow-lg p-6 min-h-[500px]">
-                        <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">
-                            Recent Transactions
-                            {accSelected && <span className="text-base font-normal text-gray-500 ml-2">(Account #{accSelected.acc_id})</span>}
-                        </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {/* Left Column: Cards & Insurances */}
+                    <div className="md:col-span-1 space-y-6">
 
-                        <div className="space-y-4">
-                            {transactions.length > 0 ? (
-                                transactions.map(mov => (
-                                    <div key={mov.trn_id} className="flex justify-between items-center p-4 hover:bg-gray-50 rounded-lg border-b border-gray-100 transition">
-                                        <div className="flex items-center space-x-4">
-                                            <div className={`p-3 rounded-full ${mov.trn_type === 'DEPOSIT' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                                                {/* Icono simple dependiendo del tipo */}
-                                                {mov.trn_type === 'DEPOSIT' ? '⬇' : '⬆'}
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-gray-800">{mov.description || 'Transferencia'}</p>
-                                                <p className="text-xs text-gray-500">{new Date(mov.date_time).toLocaleDateString()} • {mov.trn_type}</p>
-                                            </div>
-                                        </div>
-                                        <span className={`font-bold text-lg ${mov.trn_type === 'DEPOSIT' ? 'text-green-600' : 'text-gray-800'}`}>
-                                            {mov.trn_type === 'DEPOSIT' ? '+' : '-'}${mov.amount}
+                        {/* Cards Section */}
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-700 mb-4">My Cards</h2>
+                            {cards.map(card => (
+                                <div key={card.card_id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-2 relative">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className={`text-xs font-bold px-2 py-1 rounded ${card.card_type === 'Debit' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                                            {card.card_type}
                                         </span>
+                                        <button
+                                            onClick={() => {
+                                                const newVisibleId = visibleCardId === card.card_id ? null : card.card_id;
+                                                setVisibleCardId(newVisibleId);
+
+                                                // Si se abre la tarjeta, cargar sus movimientos
+                                                if (newVisibleId) {
+                                                    // Buscar la cuenta asociada a esta tarjeta
+                                                    const linkedAccount = accounts.find(a => a.acc_id === card.acc_id);
+                                                    if (linkedAccount) {
+                                                        setAccSelection(linkedAccount); // Esto disparará el useEffect que carga movimientos
+                                                    }
+                                                }
+                                            }}
+                                            className="text-gray-400 hover:text-gray-600 focus:outline-none transition"
+                                            title={visibleCardId === card.card_id ? "Hide details" : "Show details"}
+                                        >
+                                            {visibleCardId === card.card_id ? (
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
+                                                    <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+                                                </svg>
+                                            ) : (
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                                    <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                                                </svg>
+                                            )}
+                                        </button>
                                     </div>
-                                ))
-                            ) : (
-                                <div className="text-center py-10 text-gray-400">
-                                    Select an account to view its transactions or there is no history available.
+
+                                    <p className="font-mono text-lg text-gray-800 tracking-wider mb-1">
+                                        {visibleCardId === card.card_id
+                                            ? (card.card_num.match(/.{1,4}/g) || []).join(' ')
+                                            : `**** **** **** ${card.card_num.slice(-4)}`}
+                                    </p>
+
+                                    <div className="flex justify-between text-xs text-gray-500 mt-2">
+                                        <span>Exp: {new Date(card.exp_date).toLocaleDateString()}</span>
+                                        {visibleCardId === card.card_id && (
+                                            <span className="font-bold text-gray-700">CVV: {card.cvv}</span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-gray-400 mt-1">Linked to: ****{card.acc_id}</p>
                                 </div>
+                            ))}
+                            {cards.length === 0 && (
+                                <p className="text-gray-500 italic text-sm">No cards available.</p>
                             )}
+                        </div>
+
+                        {/* Insurances Section */}
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-700 mb-4">My Insurances</h2>
+                            {insurances.map(seguro => (
+                                <div key={seguro.ins_id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between mb-2">
+                                    <div>
+                                        <p className="font-bold text-gray-800">{seguro.ins_type}</p>
+                                        <p className="text-xs text-gray-500">Beneficiary: {seguro.beneficiary}</p>
+                                    </div>
+                                    <span className="text-green-600 font-bold text-sm">${seguro.premium}</span>
+                                </div>
+                            ))}
+                            {insurances.length === 0 && (
+                                <p className="text-gray-500 italic text-sm">No insurance contracts.</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Column: Transactions */}
+                    <div className="md:col-span-2">
+                        <div className="bg-white rounded-xl shadow-lg p-6 min-h-[500px]">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">
+                                Recent Transactions
+                                {accSelected && <span className="text-base font-normal text-gray-500 ml-2">(Account #{accSelected.acc_id})</span>}
+                            </h2>
+
+                            <div className="space-y-4">
+                                {transactions.length > 0 ? (
+                                    transactions.map(mov => (
+                                        <div key={mov.trn_id} className="flex justify-between items-center p-4 hover:bg-gray-50 rounded-lg border-b border-gray-100 transition">
+                                            <div className="flex items-center space-x-4">
+                                                <div className={`p-3 rounded-full ${mov.trn_type === 'DEPOSIT' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                                    {/* Icono simple dependiendo del tipo */}
+                                                    {mov.trn_type === 'DEPOSIT' ? '⬇' : '⬆'}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-gray-800">{mov.description || 'Transferencia'}</p>
+                                                    <p className="text-xs text-gray-500">{new Date(mov.date_time).toLocaleDateString()} • {mov.trn_type}</p>
+                                                </div>
+                                            </div>
+                                            <span className={`font-bold text-lg ${mov.trn_type === 'DEPOSIT' ? 'text-green-600' : 'text-gray-800'}`}>
+                                                {mov.trn_type === 'DEPOSIT' ? '+' : '-'}${mov.amount}
+                                            </span>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-10 text-gray-400">
+                                        Select an account to view its transactions or there is no history available.
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -303,18 +396,130 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                         <div className="mb-6">
                             <h3 className="text-sm font-bold text-gray-500 uppercase mb-2">My Active Loans</h3>
                             {loans.length > 0 ? (
-                                <div className="space-y-2 max-h-40 overflow-y-auto">
+                                <div className="space-y-2 max-h-60 overflow-y-auto">
                                     {loans.map(loan => (
-                                        <div key={loan.loan_id} className="border p-3 rounded flex justify-between items-center bg-gray-50">
-                                            <div>
-                                                <p className="font-bold text-gray-800">${loan.amount_org} ({loan.month_term} months)</p>
-                                                <p className="text-xs text-gray-500">
-                                                    Status: {loan.approve_date ? <span className="text-green-600 font-bold">Active</span> : <span className="text-yellow-600 font-bold">Pending Approval</span>}
-                                                </p>
+                                        <div key={loan.loan_id} className={`border p-3 rounded ${loan.isCreditCard ? 'bg-purple-50 border-purple-200' : 'bg-gray-50'}`}>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <div>
+                                                    <p className="font-bold text-gray-800">
+                                                        {loan.isCreditCard ? `Credit Card (****${loan.acc_id})` : `$${loan.amount_org} (${loan.month_term} months)`}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {loan.isCreditCard ? (
+                                                            <span className="text-purple-700 font-bold">Credit Limit: ${loan.amount_org}</span>
+                                                        ) : (
+                                                            <>Status: {loan.approve_date ? <span className="text-green-600 font-bold">Active</span> : <span className="text-yellow-600 font-bold">Pending Approval</span>}</>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-sm font-bold text-blue-900">
+                                                        {loan.isCreditCard ? `Debt: $${loan.cap_balance}` : `Balance: $${loan.cap_balance}`}
+                                                    </p>
+                                                    {loan.isCreditCard && (
+                                                        <p className="text-xs text-green-600">Available: ${loan.balance}</p>
+                                                    )}
+                                                    {((loan.approve_date && parseFloat(loan.cap_balance) > 0) || (loan.isCreditCard && parseFloat(loan.cap_balance) > 0)) && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedLoanId(selectedLoanId === loan.loan_id ? null : loan.loan_id);
+                                                                setPaymentAmount('');
+                                                                setPaymentAccId('');
+                                                            }}
+                                                            className={`text-xs text-white px-2 py-1 rounded mt-1 ${loan.isCreditCard ? 'bg-purple-500 hover:bg-purple-600' : 'bg-green-500 hover:bg-green-600'}`}
+                                                        >
+                                                            {selectedLoanId === loan.loan_id ? 'Cancel' : (loan.isCreditCard ? 'Pay Card' : 'Pay Loan')}
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="text-sm font-bold text-blue-900">Balance: ${loan.cap_balance}</p>
-                                            </div>
+
+                                            {/* Formulario de Pago */}
+                                            {selectedLoanId === loan.loan_id && (
+                                                <div className="mt-3 p-3 bg-white border rounded shadow-inner">
+                                                    <p className="text-xs font-bold text-gray-600 mb-2">
+                                                        {loan.isCreditCard ? 'Pay Credit Card' : 'Make a Payment'}
+                                                    </p>
+                                                    <div className="flex gap-2 mb-2">
+                                                        <input
+                                                            type="number"
+                                                            placeholder="Amount"
+                                                            className="border rounded p-1 text-sm w-1/3"
+                                                            value={paymentAmount}
+                                                            onChange={(e) => setPaymentAmount(e.target.value)}
+                                                        />
+                                                        <select
+                                                            className="border rounded p-1 text-sm w-2/3"
+                                                            value={paymentAccId}
+                                                            onChange={(e) => setPaymentAccId(e.target.value)}
+                                                        >
+                                                            <option value="">Select Account</option>
+                                                            {accounts
+                                                                .filter(acc => acc.acc_type !== 'Credit') // No pagar con crédito
+                                                                .map(acc => (
+                                                                    <option key={acc.acc_id} value={acc.acc_id}>
+                                                                        {acc.acc_type} - ${acc.balance}
+                                                                    </option>
+                                                                ))}
+                                                        </select>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (!paymentAmount || !paymentAccId) return alert("Please fill all fields");
+
+                                                            if (loan.isCreditCard) {
+                                                                // Lógica para pagar tarjeta de crédito (Depósito a la cuenta de crédito)
+                                                                // 1. Retiro de la cuenta origen
+                                                                // 2. Depósito a la cuenta destino (la de crédito)
+
+                                                                // Hacemos una transferencia normal
+                                                                fetch('http://localhost:3000/api/accounts/transfer', {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({
+                                                                        origin_id: paymentAccId,
+                                                                        dest_id: loan.acc_id,
+                                                                        amount: paymentAmount
+                                                                    })
+                                                                })
+                                                                    .then(res => res.json())
+                                                                    .then(data => {
+                                                                        if (data.success) {
+                                                                            alert("Credit Card payment successful!");
+                                                                            refreshData();
+                                                                            setSelectedLoanId(null);
+                                                                        } else {
+                                                                            alert(data.message || "Error processing payment");
+                                                                        }
+                                                                    })
+                                                                    .catch(err => alert(err.message));
+
+                                                            } else {
+                                                                // Lógica para pagar préstamo normal
+                                                                fetch(`http://localhost:3000/api/loans/pay/${loan.loan_id}`, {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({ amount: paymentAmount, acc_id: paymentAccId })
+                                                                })
+                                                                    .then(res => res.json())
+                                                                    .then(data => {
+                                                                        if (data.success) {
+                                                                            alert(data.message);
+                                                                            refreshData();
+                                                                            setSelectedLoanId(null);
+                                                                        } else {
+                                                                            alert(data.error || data.message);
+                                                                        }
+                                                                    })
+                                                                    .catch(err => alert(err.message));
+                                                            }
+                                                        }}
+                                                        className={`w-full text-white text-xs font-bold py-1 rounded ${loan.isCreditCard ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                                                    >
+                                                        Confirm Payment
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -336,15 +541,15 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-gray-700 text-sm font-bold mb-2">Plazo (Meses)</label>
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Term (Months)</label>
                                     <select
                                         className="border rounded p-2 w-full"
                                         onChange={(e) => setLoanTerm(e.target.value)}
                                         value={loanTerm}
                                     >
-                                        <option value="6">6 Meses</option>
-                                        <option value="12">12 Meses</option>
-                                        <option value="24">24 Meses</option>
+                                        <option value="6">6 Months</option>
+                                        <option value="12">12 Months</option>
+                                        <option value="24">24 Months</option>
                                     </select>
                                 </div>
                                 <div className="flex justify-end gap-3 mt-6">
@@ -717,6 +922,95 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                         </div>
                     </div>
                 )}
+
+            {/* Modal: Cards */}
+            {isCardsModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
+                        <h2 className="text-xl font-bold text-gray-800 mb-4">Manage Cards</h2>
+
+                        <div className="space-y-6">
+                            {/* Create Debit Card */}
+                            <div className="border p-4 rounded-lg bg-gray-50">
+                                <h3 className="font-bold text-gray-700 mb-2">Create Debit Card</h3>
+                                <p className="text-sm text-gray-500 mb-3">Select an account to link your new debit card.</p>
+                                <select
+                                    className="border rounded p-2 w-full mb-3"
+                                    value={newCardAccId}
+                                    onChange={(e) => setNewCardAccId(e.target.value)}
+                                >
+                                    <option value="">Select Account</option>
+                                    {accounts.map(acc => (
+                                        <option key={acc.acc_id} value={acc.acc_id}>
+                                            {acc.acc_type} - ${acc.balance} ({acc.currency})
+                                        </option>
+                                    ))}
+                                </select>
+                                <button
+                                    onClick={() => {
+                                        if (!newCardAccId) return alert("Select an account");
+                                        fetch('http://localhost:3000/api/cards/create', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ acc_id: newCardAccId })
+                                        })
+                                            .then(res => res.json())
+                                            .then(data => {
+                                                if (data.success) {
+                                                    alert(data.message);
+                                                    refreshData();
+                                                    setNewCardAccId('');
+                                                } else {
+                                                    alert(data.message || data.error || "Unknown error occurred");
+                                                }
+                                            })
+                                            .catch(err => alert("Network error: " + err.message));
+                                    }}
+                                    className="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700"
+                                >
+                                    Create Debit Card
+                                </button>
+                            </div>
+
+                            {/* Request Credit Card */}
+                            <div className="border p-4 rounded-lg bg-gray-50">
+                                <h3 className="font-bold text-gray-700 mb-2">Request Credit Card</h3>
+                                <p className="text-sm text-gray-500 mb-3">Submit a request for a credit card. An executive will review your application and assign a credit limit.</p>
+                                <button
+                                    onClick={() => {
+                                        fetch('http://localhost:3000/api/cards/request-credit', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ client_id: user.client_id })
+                                        })
+                                            .then(res => res.json())
+                                            .then(data => {
+                                                if (data.success) {
+                                                    alert(data.message);
+                                                } else {
+                                                    alert(data.message || data.error || "Unknown error occurred");
+                                                }
+                                            })
+                                            .catch(err => alert("Network error: " + err.message));
+                                    }}
+                                    className="w-full bg-purple-600 text-white font-bold py-2 rounded hover:bg-purple-700"
+                                >
+                                    Request Credit Card
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                            <button
+                                onClick={() => setIsCardsModalOpen(false)}
+                                className="text-gray-500 font-bold px-4 py-2"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
 
     );

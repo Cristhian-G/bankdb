@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 export default function Dashboard() {
     const [loans, setLoans] = useState([]);
     const [clients, setClients] = useState([]);
+    const [cardRequests, setCardRequests] = useState([]);
 
     const loadLoans = () => {
         fetch('http://localhost:3000/api/loans/pending')
@@ -11,11 +12,9 @@ export default function Dashboard() {
                 return res.json();
             })
             .then(data => {
-                console.log("Data received:", data);
                 if (Array.isArray(data)) {
                     setLoans(data);
                 } else {
-                    console.error("The data format is not an array:", data);
                     setLoans([]);
                 }
             })
@@ -29,9 +28,17 @@ export default function Dashboard() {
             .catch(err => console.error("Error loading clients:", err));
     };
 
+    const loadCardRequests = () => {
+        fetch('http://localhost:3000/api/cards/requests')
+            .then(res => res.json())
+            .then(data => setCardRequests(data))
+            .catch(err => console.error("Error loading card requests:", err));
+    };
+
     useEffect(() => {
         loadLoans();
         loadClients();
+        loadCardRequests();
     }, []);
 
     const handleApprove = async (id) => {
@@ -52,6 +59,31 @@ export default function Dashboard() {
             }
         } catch (error) {
             console.error("Error approving loan:", error);
+        }
+    };
+
+    const handleApproveCard = async (id) => {
+        const limit = prompt("Enter the credit limit for this card (MXN):", "10000");
+        if (!limit) return;
+
+        try {
+            const response = await fetch(`http://localhost:3000/api/cards/approve/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credit_limit: limit })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert(data.message);
+                loadCardRequests();
+            } else {
+                alert("Error: " + (data.error || data.message));
+            }
+        } catch (error) {
+            console.error("Error approving card:", error);
+            alert("Error approving card");
         }
     };
 
@@ -139,6 +171,60 @@ export default function Dashboard() {
                 {loans.length === 0 && (
                     <div className="p-10 text-center text-gray-500 text-lg">
                         ✅ No requests to approve.
+                    </div>
+                )}
+            </div>
+
+            <header className="mb-8 mt-12">
+                <h1 className="text-3xl font-bold text-blue-900">Credit Card Requests</h1>
+                <p className="text-gray-600">Pending credit card applications</p>
+            </header>
+
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+                <table className="min-w-full leading-normal">
+                    <thead>
+                        <tr>
+                            <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                Request ID
+                            </th>
+                            <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                Client
+                            </th>
+                            <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                Date
+                            </th>
+                            <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                Action
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {cardRequests.map((req) => (
+                            <tr key={req.request_id}>
+                                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm text-gray-500">
+                                    #{req.request_id}
+                                </td>
+                                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm font-bold text-gray-800">
+                                    {req.name} {req.lastname}
+                                </td>
+                                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm text-gray-600">
+                                    {new Date(req.request_date).toLocaleDateString()}
+                                </td>
+                                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                                    <button
+                                        onClick={() => handleApproveCard(req.request_id)}
+                                        className="bg-purple-600 hover:bg-purple-800 text-white font-bold py-2 px-4 rounded transition duration-300 shadow-md">
+                                        Approve
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+                {cardRequests.length === 0 && (
+                    <div className="p-10 text-center text-gray-500 text-lg">
+                        ✅ No pending card requests.
                     </div>
                 )}
             </div>

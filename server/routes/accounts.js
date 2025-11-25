@@ -85,6 +85,63 @@ router.post('/transaction', async (req, res) => {
     }
 });
 
+// Transferencia entre cuentas
+router.post('/transfer', async (req, res) => {
+    const { origin_id, dest_id, amount } = req.body;
+
+    if (!origin_id || !dest_id || !amount || amount <= 0) {
+        return res.status(400).json({ message: "Invalid transfer data" });
+    }
+
+    if (origin_id === dest_id) {
+        return res.status(400).json({ message: "Cannot transfer to the same account" });
+    }
+
+    let connection;
+    try {
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        // 1. Check Origin Balance
+        const [originAcc] = await connection.query('SELECT balance FROM account WHERE acc_id = ?', [origin_id]);
+        if (originAcc.length === 0) throw new Error('Origin account not found');
+        if (originAcc[0].balance < amount) throw new Error('Insufficient funds');
+
+        // 2. Check Destination Account
+        const [destAcc] = await connection.query('SELECT acc_id FROM account WHERE acc_id = ?', [dest_id]);
+        if (destAcc.length === 0) throw new Error('Destination account not found');
+
+        // 3. Deduct from Origin
+        await connection.query('UPDATE account SET balance = balance - ? WHERE acc_id = ?', [amount, origin_id]);
+
+        // 4. Add to Destination
+        await connection.query('UPDATE account SET balance = balance + ? WHERE acc_id = ?', [amount, dest_id]);
+
+        // 5. Record Transactions
+        const date = new Date();
+        // Withdrawal for Origin
+        await connection.query(
+            'INSERT INTO transactions (acc_id, trn_type, description, date_time, amount) VALUES (?, ?, ?, ?, ?)',
+            [origin_id, 'WITHDRAWAL', `Transfer to #${dest_id}`, date, amount]
+        );
+        // Deposit for Destination
+        await connection.query(
+            'INSERT INTO transactions (acc_id, trn_type, description, date_time, amount) VALUES (?, ?, ?, ?, ?)',
+            [dest_id, 'DEPOSIT', `Transfer from #${origin_id}`, date, amount]
+        );
+
+        await connection.commit();
+        res.json({ success: true, message: "Transfer successful" });
+
+    } catch (error) {
+        if (connection) await connection.rollback();
+        console.error("Error in transfer:", error);
+        res.status(500).json({ error: error.message });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
 // Crear nueva cuenta
 router.post('/create', async (req, res) => {
     const { client_id, acc_type, currency } = req.body;

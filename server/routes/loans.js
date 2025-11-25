@@ -110,10 +110,119 @@ router.post('/request', async (req, res) => {
 router.get('/client/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const [rows] = await db.query('SELECT * FROM loans WHERE client_id = ? ORDER BY loan_id DESC', [id]);
-        res.json(rows);
+        // We want to show:
+        // 1. Regular Loans
+        // 2. Credit Card Balances (treated as loans for payment purposes)
+
+        const sql = `
+            SELECT 
+                l.loan_id, 
+                l.client_id, 
+                l.amount_org, 
+                l.cap_balance, 
+                l.month_term, 
+                l.interest_rate, 
+                l.approve_date, 
+                'Personal Loan' as type,
+                NULL as acc_id,
+                NULL as balance
+            FROM loans l
+            WHERE l.client_id = ?
+            
+            UNION ALL
+            
+            SELECT 
+                a.acc_id as loan_id, 
+                a.client_id, 
+                (a.balance + IFNULL((SELECT SUM(amount) FROM transactions WHERE acc_id = a.acc_id AND trn_type = 'WITHDRAWAL'), 0) - IFNULL((SELECT SUM(amount) FROM transactions WHERE acc_id = a.acc_id AND trn_type = 'DEPOSIT'), 0)) as amount_org, -- Calculated Limit
+                (IFNULL((SELECT SUM(amount) FROM transactions WHERE acc_id = a.acc_id AND trn_type = 'WITHDRAWAL'), 0) - IFNULL((SELECT SUM(amount) FROM transactions WHERE acc_id = a.acc_id AND trn_type = 'DEPOSIT'), 0)) as cap_balance, -- Debt
+                1 as month_term, 
+                0 as interest_rate, 
+                a.opening_date as approve_date, 
+                'Credit Card' as type,
+                a.acc_id,
+                a.balance
+            FROM account a
+            WHERE a.client_id = ? AND a.acc_type = 'Credit'
+        `;
+
+        const [rows] = await db.query(sql, [id, id]);
+
+        // Filter out credit cards with 0 or negative debt (overpaid) if desired, 
+        // but showing them allows seeing the available credit too.
+        // We will map them to ensure proper formatting.
+
+        const results = rows.map(row => ({
+            ...row,
+            isCreditCard: row.type === 'Credit Card',
+            // Ensure numbers are numbers
+            amount_org: parseFloat(row.amount_org),
+            cap_balance: parseFloat(row.cap_balance),
+            balance: parseFloat(row.balance)
+        }));
+
+        res.json(results);
+
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Pay Loan
+router.post('/pay/:id', async (req, res) => {
+    const { id } = req.params;
+    const { amount, acc_id } = req.body;
+
+    if (!amount || amount <= 0 || !acc_id) {
+        return res.status(400).json({ error: 'Invalid payment data' });
+    }
+
+    let connection;
+    try {
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        // 1. Check Account Balance
+        const [accounts] = await connection.query('SELECT balance FROM account WHERE acc_id = ?', [acc_id]);
+        if (accounts.length === 0) throw new Error('Account not found');
+        if (accounts[0].balance < amount) throw new Error('Insufficient funds');
+
+        // 2. Check Loan Balance
+        const [loans] = await connection.query('SELECT cap_balance FROM loans WHERE loan_id = ?', [id]);
+        if (loans.length === 0) throw new Error('Loan not found');
+        const currentBalance = parseFloat(loans[0].cap_balance);
+
+        // Prevent overpayment (optional, but good practice)
+        if (amount > currentBalance) {
+            throw new Error(`Payment amount exceeds loan balance ($${currentBalance})`);
+        }
+
+        // 3. Deduct from Account
+        await connection.query('UPDATE account SET balance = balance - ? WHERE acc_id = ?', [amount, acc_id]);
+
+        // 4. Record Transaction
+        await connection.query(
+            'INSERT INTO transactions (acc_id, trn_type, description, date_time, amount) VALUES (?, ?, ?, ?, ?)',
+            [acc_id, 'WITHDRAWAL', `Loan Payment #${id}`, new Date(), amount]
+        );
+
+        // 5. Update Loan Balance
+        await connection.query('UPDATE loans SET cap_balance = cap_balance - ? WHERE loan_id = ?', [amount, id]);
+
+        // 6. Check if loan is fully paid
+        const newBalance = currentBalance - amount;
+        if (newBalance <= 0) {
+            await connection.query('DELETE FROM loans WHERE loan_id = ?', [id]);
+        }
+
+        await connection.commit();
+        res.json({ success: true, message: newBalance <= 0 ? 'Loan fully paid and closed!' : 'Payment successful' });
+
+    } catch (error) {
+        if (connection) await connection.rollback();
+        res.status(500).json({ error: error.message });
+    } finally {
+        if (connection) connection.release();
     }
 });
 
