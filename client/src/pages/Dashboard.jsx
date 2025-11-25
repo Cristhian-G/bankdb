@@ -1,32 +1,32 @@
 import React, { useEffect, useState } from 'react';
 
 export default function Dashboard() {
-    const [prestamos, setPrestamos] = useState([]);
+    const [loans, setLoans] = useState([]);
 
-    const cargarPrestamos = () => {
+    const loadLoans = () => {
         fetch('http://localhost:3000/api/loans/pending')
             .then(res => {
-                if (!res.ok) throw new Error('Error en la respuesta del servidor');
+                if (!res.ok) throw new Error('The service is not available');
                 return res.json();
             })
             .then(data => {
-                console.log("Datos recibidos:", data);
+                console.log("Data received:", data);
                 if (Array.isArray(data)) {
-                    setPrestamos(data);
+                    setLoans(data);
                 } else {
-                    console.error("El formato de datos no es un array:", data);
-                    setPrestamos([]);
+                    console.error("The data format is not an array:", data);
+                    setLoans([]);
                 }
             })
-            .catch(err => console.error("Error cargando datos:", err));
+            .catch(err => console.error("Error loading data:", err));
     };
 
     useEffect(() => {
-        cargarPrestamos();
+        loadLoans();
     }, []);
 
-    const handleAprobar = async (id) => {
-        if (!window.confirm("¿Estás seguro de aprobar este crédito?")) return;
+    const handleApprove = async (id) => {
+        if (!window.confirm("Are you sure you want to approve this loan?")) return;
 
         try {
             const response = await fetch(`http://localhost:3000/api/loans/approve/${id}`, {
@@ -36,21 +36,21 @@ export default function Dashboard() {
             });
 
             if (response.ok) {
-                alert("¡Crédito aprobado!");
-                cargarPrestamos(); // Recargamos la tabla para que desaparezca el aprobado
+                alert("¡Loan approved!");
+                loadLoans(); // Recargamos la tabla para que desaparezca el aprobado
             } else {
-                alert("Hubo un error al aprobar");
+                alert("Error approving loan");
             }
         } catch (error) {
-            console.error("Error:", error);
+            console.error("Error approving loan:", error);
         }
     };
 
     return (
         <div className="min-h-screen bg-gray-100 p-8">
             <header className="mb-8">
-                <h1 className="text-3xl font-bold text-blue-900">Banco - Panel Administrativo</h1>
-                <p className="text-gray-600">Solicitudes de crédito por autorizar</p>
+                <h1 className="text-3xl font-bold text-blue-900">Bank - Admin Panel</h1>
+                <p className="text-gray-600">Loan requests to approve</p>
             </header>
 
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
@@ -75,7 +75,7 @@ export default function Dashboard() {
                         </tr>
                     </thead>
                     <tbody>
-                        {prestamos.map((p) => (
+                        {loans.map((p) => (
                             // OJO: Aquí usamos las keys que vienen de la nueva Query SQL
                             <tr key={p.loan_id}>
                                 <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm text-gray-500">
@@ -90,14 +90,14 @@ export default function Dashboard() {
                                 <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                                     <span className="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
                                         <span aria-hidden className="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
-                                        <span className="relative">{p.month_term} meses</span>
+                                        <span className="relative">{p.month_term} months</span>
                                     </span>
                                 </td>
                                 <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                                     <button
-                                        onClick={() => handleAprobar(p.loan_id)}
+                                        onClick={() => handleApprove(p.loan_id)}
                                         className="bg-indigo-600 hover:bg-indigo-800 text-white font-bold py-2 px-4 rounded transition duration-300 shadow-md">
-                                        Autorizar
+                                        Approve
                                     </button>
                                 </td>
                             </tr>
@@ -105,9 +105,9 @@ export default function Dashboard() {
                     </tbody>
                 </table>
 
-                {prestamos.length === 0 && (
+                {loans.length === 0 && (
                     <div className="p-10 text-center text-gray-500 text-lg">
-                        ✅ No hay solicitudes pendientes por revisar.
+                        ✅ No requests to approve.
                     </div>
                 )}
             </div>

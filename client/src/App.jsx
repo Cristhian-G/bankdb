@@ -9,9 +9,9 @@ function App() {
     const [role, setRole] = useState('');   // 'admin' o 'client'
     const [isRegistering, setIsRegistering] = useState(false);
 
-    const handleLogin = (usuarioDatos, rolUsuario) => {
-        setUser(usuarioDatos);
-        setRole(rolUsuario);
+    const handleLogin = (userData, roleUser) => {
+        setUser(userData);
+        setRole(roleUser);
     };
 
     const handleLogout = () => {
@@ -32,7 +32,7 @@ function App() {
         return (
             <div>
                 {/* Botón temporal para salir */}
-                <button onClick={handleLogout} className="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded">Salir</button>
+                <button onClick={handleLogout} className="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded">Logout</button>
                 <Dashboard />
             </div>
         );

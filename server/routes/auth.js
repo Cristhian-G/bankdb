@@ -8,37 +8,37 @@ router.post('/login', async (req, res) => {
     try {
         // 1. Primero buscamos en la tabla de EMPLEADOS (usando el nombre o un email si tuvieran)
         // Nota: Tu tabla employees no tiene email, usaremos 'name' como usuario por ahora
-        const [empleados] = await db.query(
+        const [employees] = await db.query(
             'SELECT * FROM employees WHERE name = ? AND password = ?',
             [email, password] // Aquí 'email' actúa como nombre de usuario
         );
 
-        if (empleados.length > 0) {
+        if (employees.length > 0) {
             return res.json({
                 success: true,
                 role: 'admin',
-                user: empleados[0],
-                message: 'Bienvenido Ejecutivo'
+                user: employees[0],
+                message: 'Welcome Executive!'
             });
         }
 
-        // 2. Si no es empleado, buscamos en CLIENTES (ellos sí tienen email)
-        const [clientes] = await db.query(
+        // 2. If not employee, search in CLIENTS (they have email)
+        const [clients] = await db.query(
             'SELECT * FROM clients WHERE email = ? AND password = ?',
             [email, password]
         );
 
-        if (clientes.length > 0) {
+        if (clients.length > 0) {
             return res.json({
                 success: true,
                 role: 'client',
-                user: clientes[0],
-                message: 'Bienvenido Cliente'
+                user: clients[0],
+                message: 'Welcome Client!'
             });
         }
 
         // 3. Si no se encuentra en ninguno
-        res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
+        res.status(401).json({ success: false, message: 'Invalid credentials' });
 
     } catch (error) {
         res.status(500).json({ error: error.message });

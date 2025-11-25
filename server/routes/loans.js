@@ -29,11 +29,11 @@ router.post('/approve/:id', async (req, res) => {
 
         if (loans.length === 0) {
             await connection.rollback();
-            return res.status(404).json({ message: 'Préstamo no encontrado' });
+            return res.status(404).json({ message: 'Loan not found' });
         }
         const loan = loans[0];
 
-        // 2. Calcular fechas
+        // 2. Calculate dates
         const today = new Date();
         const disburDate = today.toISOString().slice(0, 10); // YYYY-MM-DD
 
@@ -61,18 +61,18 @@ router.post('/approve/:id', async (req, res) => {
             // B) Registrar la transacción en el historial
             await connection.query(
                 'INSERT INTO transactions (acc_id, trn_type, description, date_time, amount) VALUES (?, ?, ?, ?, ?)',
-                [acc_id, 'DEPOSITO', `Desembolso Préstamo #${id}`, new Date(), loan.amount_org]
+                [acc_id, 'DEPOSIT', `Disbursement Loan #${id}`, new Date(), loan.amount_org]
             );
         }
 
         // Confirmar todos los cambios
         await connection.commit();
-        res.json({ message: 'Préstamo aprobado y desembolsado correctamente' });
+        res.json({ message: 'Loan approved and disbursed successfully' });
 
     } catch (error) {
         // Si algo falla, revertimos todo
         if (connection) await connection.rollback();
-        console.error("Error en aprobación:", error);
+        console.error("Error in approval:", error);
         res.status(500).json({ error: error.message });
     } finally {
         // Liberar la conexión
@@ -81,12 +81,12 @@ router.post('/approve/:id', async (req, res) => {
 });
 
 // Solicitud de préstamo por parte del cliente
-router.post('/solicitar', async (req, res) => {
+router.post('/request', async (req, res) => {
     const { client_id, amount, months } = req.body;
 
     // Validaciones básicas de negocio
     if (amount <= 0 || months <= 0) {
-        return res.status(400).json({ message: "Datos inválidos" });
+        return res.status(400).json({ message: "Invalid data" });
     }
 
     try {
@@ -100,7 +100,7 @@ router.post('/solicitar', async (req, res) => {
         // Asumimos una tasa fija del 15.0% por ahora
         await db.query(sql, [client_id, amount, amount, months]);
 
-        res.json({ message: "Solicitud enviada a revisión" });
+        res.json({ message: "Loan request sent for approval" });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: error.message });

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 
 export default function ClientDashboard({ user, onLogout }) {
-    const [cuentas, setCuentas] = useState([]);
-    const [movimientos, setMovimientos] = useState([]);
-    const [cuentaSeleccionada, setCuentaSeleccionada] = useState(null);
+    const [accounts, setAccounts] = useState([]);
+    const [transactions, setTransactions] = useState([]);
+    const [insurances, setInsurances] = useState([]);
+    const [accSelected, setAccSelection] = useState(null);
 
     // Estados para Modals y Menú
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -12,18 +13,24 @@ export default function ClientDashboard({ user, onLogout }) {
     const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
     // Estado para Solicitud de Préstamo
-    const [montoSolicitud, setMontoSolicitud] = useState(0);
-    const [plazoSolicitud, setPlazoSolicitud] = useState(12);
+    const [loanAmount, setLoanAmount] = useState(0);
+    const [loanTerm, setLoanTerm] = useState(12);
 
     // Estado para Nueva Transacción
-    const [tipoTransaccion, setTipoTransaccion] = useState('DEPOSITO');
-    const [montoTransaccion, setMontoTransaccion] = useState(0);
-    const [descTransaccion, setDescTransaccion] = useState('');
-    const [idCuentaTransaccion, setIdCuentaTransaccion] = useState('');
+    const [transactionType, setTransactionType] = useState('DEPOSITO');
+    const [transactionAmount, setTransactionAmount] = useState(0);
+    const [descTrn, setDescTrn] = useState('');
+    const [idAccTrn, setIdAccTrn] = useState('');
 
     // Estado para Abrir Nueva Cuenta
-    const [tipoCuentaNueva, setTipoCuentaNueva] = useState('Ahorro');
-    const [monedaCuentaNueva, setMonedaCuentaNueva] = useState('MXN');
+    const [newAccType, setNewAccType] = useState('Ahorro');
+    const [newAccCurrency, setNewAccCurrency] = useState('MXN');
+
+    // Estado para Contratar Seguro
+    const [isInsuranceModalOpen, setIsInsuranceModalOpen] = useState(false);
+    const [insuranceType, setInsuranceType] = useState('Vida');
+    const [insurancePremium, setInsurancePremium] = useState('');
+    const [insuranceBeneficiary, setInsuranceBeneficiary] = useState('');
 
     // Función para refrescar datos de cuentas y movimientos
     const refreshData = () => {
@@ -31,35 +38,41 @@ export default function ClientDashboard({ user, onLogout }) {
             fetch(`http://localhost:3000/api/accounts/usuario/${user.client_id}`)
                 .then(res => res.json())
                 .then(data => {
-                    setCuentas(data);
+                    setAccounts(data);
                     // Si la cuenta seleccionada sigue existiendo, actualizarla, si no, seleccionar la primera
-                    if (cuentaSeleccionada) {
-                        const updatedAccount = data.find(c => c.acc_id === cuentaSeleccionada.acc_id);
+                    if (accSelected) {
+                        const updatedAccount = data.find(c => c.acc_id === accSelected.acc_id);
                         if (updatedAccount) {
-                            setCuentaSeleccionada(updatedAccount);
-                            setIdCuentaTransaccion(updatedAccount.acc_id); // Asegurar que el ID de transacción también se actualice
+                            setAccSelection(updatedAccount);
+                            setIdAccTrn(updatedAccount.acc_id); // Asegurar que el ID de transacción también se actualice
                             // Refrescar movimientos también
                             fetch(`http://localhost:3000/api/accounts/${updatedAccount.acc_id}/movimientos`)
                                 .then(res => res.json())
-                                .then(movs => setMovimientos(movs));
+                                .then(movs => setTransactions(movs));
                         } else if (data.length > 0) {
-                            setCuentaSeleccionada(data[0]);
-                            setIdCuentaTransaccion(data[0].acc_id);
+                            setAccSelection(data[0]);
+                            setIdAccTrn(data[0].acc_id);
                         } else {
-                            setCuentaSeleccionada(null);
-                            setIdCuentaTransaccion('');
-                            setMovimientos([]);
+                            setAccSelection(null);
+                            setIdAccTrn('');
+                            setTransactions([]);
                         }
                     } else if (data.length > 0) {
-                        setCuentaSeleccionada(data[0]);
-                        setIdCuentaTransaccion(data[0].acc_id);
+                        setAccSelection(data[0]);
+                        setIdAccTrn(data[0].acc_id);
                     } else {
-                        setCuentaSeleccionada(null);
-                        setIdCuentaTransaccion('');
-                        setMovimientos([]);
+                        setAccSelection(null);
+                        setIdAccTrn('');
+                        setTransactions([]);
                     }
                 })
-                .catch(err => console.error("Error cargando cuentas:", err));
+                .catch(err => console.error("Error loading accounts:", err));
+
+            // Cargar seguros
+            fetch(`http://localhost:3000/api/insurance/user/${user.client_id}`)
+                .then(res => res.json())
+                .then(data => setInsurances(data))
+                .catch(err => console.error("Error loading insurances:", err));
         }
     };
 
@@ -70,23 +83,23 @@ export default function ClientDashboard({ user, onLogout }) {
 
     // 2. Cada vez que cambiamos de cuenta, buscamos sus movimientos
     useEffect(() => {
-        if (cuentaSeleccionada) {
-            fetch(`http://localhost:3000/api/accounts/${cuentaSeleccionada.acc_id}/movimientos`)
+        if (accSelected) {
+            fetch(`http://localhost:3000/api/accounts/${accSelected.acc_id}/movimientos`)
                 .then(res => res.json())
-                .then(data => setMovimientos(data))
-                .catch(err => console.error("Error cargando movimientos:", err));
+                .then(data => setTransactions(data))
+                .catch(err => console.error("Error loading transactions:", err));
         } else {
-            setMovimientos([]); // Limpiar movimientos si no hay cuenta seleccionada
+            setTransactions([]); // Limpiar movimientos si no hay cuenta seleccionada
         }
-    }, [cuentaSeleccionada]);
+    }, [accSelected]);
 
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Barra Superior */}
             <nav className="bg-blue-900 text-white p-4 flex justify-between items-center shadow-lg relative z-20">
                 <div>
-                    <h1 className="text-2xl font-bold">Banco Seguro</h1>
-                    <p className="text-sm opacity-80">Bienvenido, {user?.name}</p>
+                    <h1 className="text-2xl font-bold">DB Financial</h1>
+                    <p className="text-sm opacity-80">Welcome, {user?.name}</p>
                 </div>
 
                 {/* Menú Desplegable */}
@@ -95,7 +108,7 @@ export default function ClientDashboard({ user, onLogout }) {
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                         className="bg-blue-800 hover:bg-blue-700 px-4 py-2 rounded flex items-center gap-2 transition font-bold"
                     >
-                        <span>Menú</span>
+                        <span>Menu</span>
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                         </svg>
@@ -107,26 +120,32 @@ export default function ClientDashboard({ user, onLogout }) {
                                 onClick={() => { setIsLoanModalOpen(true); setIsMenuOpen(false); }}
                                 className="block w-full text-left px-4 py-2 hover:bg-gray-100 transition"
                             >
-                                💰 Solicitar Crédito
+                                💰 Request Loan
                             </button>
                             <button
                                 onClick={() => { setIsTransactionModalOpen(true); setIsMenuOpen(false); }}
                                 className="block w-full text-left px-4 py-2 hover:bg-gray-100 transition"
                             >
-                                🏧 Simular Transacción
+                                🏧 Add Transaction
                             </button>
                             <button
                                 onClick={() => { setIsAccountModalOpen(true); setIsMenuOpen(false); }}
                                 className="block w-full text-left px-4 py-2 hover:bg-gray-100 transition"
                             >
-                                💳 Abrir Nueva Cuenta
+                                💳 Open New Account
+                            </button>
+                            <button
+                                onClick={() => { setIsInsuranceModalOpen(true); setIsMenuOpen(false); }}
+                                className="block w-full text-left px-4 py-2 hover:bg-gray-100 transition"
+                            >
+                                🛡️ Contract Insurance
                             </button>
                             <div className="border-t my-1"></div>
                             <button
                                 onClick={onLogout}
                                 className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition font-bold"
                             >
-                                🚪 Cerrar Sesión
+                                🚪 End Session
                             </button>
                         </div>
                     )}
@@ -137,27 +156,41 @@ export default function ClientDashboard({ user, onLogout }) {
 
                 {/* Columna Izquierda: Mis Cuentas */}
                 <div className="md:col-span-1 space-y-4">
-                    <h2 className="text-xl font-bold text-gray-700 mb-4">Mis Cuentas</h2>
-                    {cuentas.map(cuenta => (
+                    <h2 className="text-xl font-bold text-gray-700 mb-4">My Accounts</h2>
+                    {accounts.map(cuenta => (
                         <div
                             key={cuenta.acc_id}
-                            onClick={() => setCuentaSeleccionada(cuenta)}
-                            className={`p-6 rounded-xl shadow-md cursor-pointer transition transform hover:scale-105 border-l-4 ${cuentaSeleccionada?.acc_id === cuenta.acc_id
+                            onClick={() => setAccSelection(cuenta)}
+                            className={`p-6 rounded-xl shadow-md cursor-pointer transition transform hover:scale-105 border-l-4 ${accSelected?.acc_id === cuenta.acc_id
                                 ? 'bg-white border-blue-500 ring-2 ring-blue-100'
                                 : 'bg-white border-transparent opacity-80'
                                 }`}
                         >
                             <p className="text-gray-500 text-sm uppercase font-bold tracking-wider">{cuenta.acc_type}</p>
                             <p className="text-3xl font-bold text-gray-800 my-2">${cuenta.balance}</p>
-                            <p className="text-gray-400 text-xs">Cuenta: ****{cuenta.acc_id}</p>
+                            <p className="text-gray-400 text-xs">Account: ****{cuenta.acc_id}</p>
                             <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mt-2">
                                 {cuenta.currency}
                             </span>
                         </div>
                     ))}
 
-                    {cuentas.length === 0 && (
+                    {accounts.length === 0 && (
                         <p className="text-gray-500 italic">No tienes cuentas activas.</p>
+                    )}
+
+                    <h2 className="text-xl font-bold text-gray-700 mt-8 mb-4">My Insurances</h2>
+                    {insurances.map(seguro => (
+                        <div key={seguro.ins_id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
+                            <div>
+                                <p className="font-bold text-gray-800">{seguro.ins_type}</p>
+                                <p className="text-xs text-gray-500">Beneficiary: {seguro.beneficiary}</p>
+                            </div>
+                            <span className="text-green-600 font-bold text-sm">${seguro.premium}</span>
+                        </div>
+                    ))}
+                    {insurances.length === 0 && (
+                        <p className="text-gray-500 italic text-sm">No tienes seguros contratados.</p>
                     )}
                 </div>
 
@@ -165,13 +198,13 @@ export default function ClientDashboard({ user, onLogout }) {
                 <div className="md:col-span-2">
                     <div className="bg-white rounded-xl shadow-lg p-6 min-h-[500px]">
                         <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">
-                            Movimientos Recientes
-                            {cuentaSeleccionada && <span className="text-base font-normal text-gray-500 ml-2">(Cuenta #{cuentaSeleccionada.acc_id})</span>}
+                            Recent Transactions
+                            {accSelected && <span className="text-base font-normal text-gray-500 ml-2">(Account #{accSelected.acc_id})</span>}
                         </h2>
 
                         <div className="space-y-4">
-                            {movimientos.length > 0 ? (
-                                movimientos.map(mov => (
+                            {transactions.length > 0 ? (
+                                transactions.map(mov => (
                                     <div key={mov.trn_id} className="flex justify-between items-center p-4 hover:bg-gray-50 rounded-lg border-b border-gray-100 transition">
                                         <div className="flex items-center space-x-4">
                                             <div className={`p-3 rounded-full ${mov.trn_type === 'DEPOSITO' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
@@ -190,7 +223,7 @@ export default function ClientDashboard({ user, onLogout }) {
                                 ))
                             ) : (
                                 <div className="text-center py-10 text-gray-400">
-                                    Selecciona una cuenta para ver sus movimientos o no hay historial disponible.
+                                    Select an account to view its transactions or there is no history available.
                                 </div>
                             )}
                         </div>
@@ -200,27 +233,27 @@ export default function ClientDashboard({ user, onLogout }) {
 
             {/* --- MODALS --- */}
 
-            {/* Modal: Solicitar Crédito */}
+            {/* Modal: Request Credit */}
             {isLoanModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-xl shadow-2xl w-96">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4">Solicitar Crédito</h2>
+                        <h2 className="text-xl font-bold text-gray-800 mb-4">Request Credit</h2>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Monto</label>
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Amount</label>
                                 <input
                                     type="number"
                                     className="border rounded p-2 w-full"
                                     placeholder="Ej. 5000"
-                                    onChange={(e) => setMontoSolicitud(e.target.value)}
+                                    onChange={(e) => setLoanAmount(e.target.value)}
                                 />
                             </div>
                             <div>
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Plazo (Meses)</label>
                                 <select
                                     className="border rounded p-2 w-full"
-                                    onChange={(e) => setPlazoSolicitud(e.target.value)}
-                                    value={plazoSolicitud}
+                                    onChange={(e) => setLoanTerm(e.target.value)}
+                                    value={loanTerm}
                                 >
                                     <option value="6">6 Meses</option>
                                     <option value="12">12 Meses</option>
@@ -228,13 +261,13 @@ export default function ClientDashboard({ user, onLogout }) {
                                 </select>
                             </div>
                             <div className="flex justify-end gap-3 mt-6">
-                                <button onClick={() => setIsLoanModalOpen(false)} className="px-4 py-2 text-gray-500 font-bold">Cancelar</button>
+                                <button onClick={() => setIsLoanModalOpen(false)} className="px-4 py-2 text-gray-500 font-bold">Cancel</button>
                                 <button
                                     onClick={() => {
                                         fetch('http://localhost:3000/api/loans/solicitar', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ client_id: user.client_id, amount: montoSolicitud, months: plazoSolicitud })
+                                            body: JSON.stringify({ client_id: user.client_id, amount: loanAmount, months: loanTerm })
                                         })
                                             .then(res => res.json())
                                             .then(data => { alert(data.message); setIsLoanModalOpen(false); })
@@ -242,7 +275,7 @@ export default function ClientDashboard({ user, onLogout }) {
                                     }}
                                     className="bg-blue-600 text-white font-bold px-4 py-2 rounded hover:bg-blue-700"
                                 >
-                                    Solicitar
+                                    Request
                                 </button>
                             </div>
                         </div>
@@ -250,20 +283,20 @@ export default function ClientDashboard({ user, onLogout }) {
                 </div>
             )}
 
-            {/* Modal: Simular Transacción */}
+            {/* Modal: Make a Transaction */}
             {isTransactionModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4">Simular Transacción</h2>
+                        <h2 className="text-xl font-bold text-gray-800 mb-4">Make a Transaction</h2>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Cuenta</label>
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Account</label>
                                 <select
                                     className="border rounded p-2 w-full"
-                                    value={idCuentaTransaccion}
-                                    onChange={(e) => setIdCuentaTransaccion(e.target.value)}
+                                    value={idAccTrn}
+                                    onChange={(e) => setIdAccTrn(e.target.value)}
                                 >
-                                    {cuentas.map(c => (
+                                    {accounts.map(c => (
                                         <option key={c.acc_id} value={c.acc_id}>
                                             {c.acc_type} - ${c.balance} ({c.currency})
                                         </option>
@@ -272,44 +305,44 @@ export default function ClientDashboard({ user, onLogout }) {
                             </div>
                             <div className="flex gap-4">
                                 <div className="w-1/2">
-                                    <label className="block text-gray-700 text-sm font-bold mb-2">Tipo</label>
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Type</label>
                                     <select
                                         className="border rounded p-2 w-full"
-                                        value={tipoTransaccion}
-                                        onChange={(e) => setTipoTransaccion(e.target.value)}
+                                        value={transactionType}
+                                        onChange={(e) => setTransactionType(e.target.value)}
                                     >
-                                        <option value="DEPOSITO">Depósito (+)</option>
-                                        <option value="RETIRO">Retiro (-)</option>
+                                        <option value="DEPOSIT">Deposit (+)</option>
+                                        <option value="WITHDRAW">Withdraw (-)</option>
                                     </select>
                                 </div>
                                 <div className="w-1/2">
-                                    <label className="block text-gray-700 text-sm font-bold mb-2">Monto</label>
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Amount</label>
                                     <input
                                         type="number"
                                         className="border rounded p-2 w-full"
                                         placeholder="0.00"
-                                        onChange={(e) => setMontoTransaccion(e.target.value)}
+                                        onChange={(e) => setTransactionAmount(e.target.value)}
                                     />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Descripción</label>
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Description</label>
                                 <input
                                     type="text"
                                     className="border rounded p-2 w-full"
-                                    placeholder="Ej. Compra..."
+                                    placeholder="Purchase..."
                                     onChange={(e) => setDescTransaccion(e.target.value)}
                                 />
                             </div>
                             <div className="flex justify-end gap-3 mt-6">
-                                <button onClick={() => setIsTransactionModalOpen(false)} className="px-4 py-2 text-gray-500 font-bold">Cancelar</button>
+                                <button onClick={() => setIsTransactionModalOpen(false)} className="px-4 py-2 text-gray-500 font-bold">Cancel</button>
                                 <button
                                     onClick={() => {
-                                        if (!idCuentaTransaccion) return alert("Selecciona una cuenta");
+                                        if (!idAccTrn) return alert("Select an account");
                                         fetch('http://localhost:3000/api/accounts/transaction', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ acc_id: idCuentaTransaccion, type: tipoTransaccion, amount: montoTransaccion, description: descTransaccion })
+                                            body: JSON.stringify({ acc_id: idAccTrn, type: transactionType, amount: transactionAmount, description: descTrn })
                                         })
                                             .then(res => {
                                                 if (!res.ok) return res.json().then(err => { throw new Error(err.message) });
@@ -320,11 +353,11 @@ export default function ClientDashboard({ user, onLogout }) {
                                                 setIsTransactionModalOpen(false);
                                                 refreshData();
                                             })
-                                            .catch(err => alert("Error en transacción: " + err.message));
+                                            .catch(err => alert("Error in transaction: " + err.message));
                                     }}
                                     className="bg-purple-600 text-white font-bold px-4 py-2 rounded hover:bg-purple-700"
                                 >
-                                    Aplicar
+                                    Apply
                                 </button>
                             </div>
                         </div>
@@ -336,39 +369,39 @@ export default function ClientDashboard({ user, onLogout }) {
             {isAccountModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-xl shadow-2xl w-96">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4">Abrir Nueva Cuenta</h2>
+                        <h2 className="text-xl font-bold text-gray-800 mb-4">Open New Account</h2>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Tipo de Cuenta</label>
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Account Type</label>
                                 <select
                                     className="border rounded p-2 w-full"
-                                    value={tipoCuentaNueva}
-                                    onChange={(e) => setTipoCuentaNueva(e.target.value)}
+                                    value={newAccType}
+                                    onChange={(e) => setNewAccType(e.target.value)}
                                 >
-                                    <option value="Ahorro">Ahorro</option>
-                                    <option value="Corriente">Corriente</option>
-                                    <option value="Inversion">Inversión</option>
+                                    <option value="Savings">Savings</option>
+                                    <option value="Current">Current</option>
+                                    <option value="Investment">Investment</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Moneda</label>
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Currency</label>
                                 <select
                                     className="border rounded p-2 w-full"
-                                    value={monedaCuentaNueva}
-                                    onChange={(e) => setMonedaCuentaNueva(e.target.value)}
+                                    value={currencyNewAccount}
+                                    onChange={(e) => setCurrencyNewAccount(e.target.value)}
                                 >
-                                    <option value="MXN">Pesos Mexicanos (MXN)</option>
-                                    <option value="USD">Dólares Americanos (USD)</option>
+                                    <option value="MXN">Mexican Pesos (MXN)</option>
+                                    <option value="USD">US Dollars (USD)</option>
                                 </select>
                             </div>
                             <div className="flex justify-end gap-3 mt-6">
-                                <button onClick={() => setIsAccountModalOpen(false)} className="px-4 py-2 text-gray-500 font-bold">Cancelar</button>
+                                <button onClick={() => setIsAccountModalOpen(false)} className="px-4 py-2 text-gray-500 font-bold">Cancel</button>
                                 <button
                                     onClick={() => {
                                         fetch('http://localhost:3000/api/accounts/create', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ client_id: user.client_id, acc_type: tipoCuentaNueva, currency: monedaCuentaNueva })
+                                            body: JSON.stringify({ client_id: user.client_id, acc_type: newAccType, currency: currencyNewAccount })
                                         })
                                             .then(res => res.json())
                                             .then(data => {
@@ -382,7 +415,82 @@ export default function ClientDashboard({ user, onLogout }) {
                                     }}
                                     className="bg-green-600 text-white font-bold px-4 py-2 rounded hover:bg-green-700"
                                 >
-                                    Confirmar
+                                    Confirm
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal: Contratar Seguro */}
+            {isInsuranceModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-xl shadow-2xl w-96">
+                        <h2 className="text-xl font-bold text-gray-800 mb-4">Contract Insurance</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Type of Insurance</label>
+                                <select
+                                    className="border rounded p-2 w-full"
+                                    value={insuranceType}
+                                    onChange={(e) => setInsuranceType(e.target.value)}
+                                >
+                                    <option value="Life">Life Insurance</option>
+                                    <option value="Auto">Auto Insurance</option>
+                                    <option value="Home">Home Insurance</option>
+                                    <option value="Medical">Medical Insurance</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Prima Anual</label>
+                                <input
+                                    type="number"
+                                    className="border rounded p-2 w-full"
+                                    placeholder="Ej. 5000"
+                                    value={annualPremium}
+                                    onChange={(e) => setAnnualPremium(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Beneficiary</label>
+                                <input
+                                    type="text"
+                                    className="border rounded p-2 w-full"
+                                    placeholder="Full name"
+                                    value={beneficiaryInsurance}
+                                    onChange={(e) => setBeneficiaryInsurance(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button onClick={() => setIsInsuranceModalOpen(false)} className="px-4 py-2 text-gray-500 font-bold">Cancel</button>
+                                <button
+                                    onClick={() => {
+                                        if (!primaSeguro || !beneficiarioSeguro) return alert("Todos los campos son obligatorios");
+                                        fetch('http://localhost:3000/api/insurance/contract', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                client_id: user.client_id,
+                                                ins_type: tipoSeguro,
+                                                premium: primaSeguro,
+                                                beneficiary: beneficiarioSeguro
+                                            })
+                                        })
+                                            .then(res => res.json())
+                                            .then(data => {
+                                                alert(data.message);
+                                                if (data.success) {
+                                                    setIsInsuranceModalOpen(false);
+                                                    setPrimaSeguro('');
+                                                    setBeneficiarioSeguro('');
+                                                }
+                                            })
+                                            .catch(err => alert("Error: " + err.message));
+                                    }}
+                                    className="bg-blue-600 text-white font-bold px-4 py-2 rounded hover:bg-blue-700"
+                                >
+                                    Contratar
                                 </button>
                             </div>
                         </div>

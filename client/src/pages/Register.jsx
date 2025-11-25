@@ -10,7 +10,7 @@ export default function Register({ onSwitchToLogin }) {
     const [successMessage, setSuccessMessage] = useState('');
     const [bgImage, setBgImage] = useState('');
 
-    // Imágenes de fondo aleatorias (Temática: California)
+    // Imágenes de fondo
     const images = [
         'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?q=80&w=2000&auto=format&fit=crop', // Golden Gate
         'https://images.unsplash.com/photo-1540651810471-569907e18e90?q=80&w=2000&auto=format&fit=crop', // Hollywood Sign
@@ -39,15 +39,15 @@ export default function Register({ onSwitchToLogin }) {
             const data = await response.json();
 
             if (data.success) {
-                setSuccessMessage('¡Cuenta creada con éxito!');
+                setSuccessMessage('¡Account created successfully!');
                 setTimeout(() => {
                     onSwitchToLogin();
                 }, 2000);
             } else {
-                setError(data.message || 'Error al registrarse');
+                setError(data.message || 'Error al crear la cuenta');
             }
         } catch (err) {
-            setError('Error de conexión con el servidor');
+            setError('Error connecting to the server');
         }
     };
 
@@ -60,8 +60,8 @@ export default function Register({ onSwitchToLogin }) {
             >
                 <div className="absolute inset-0 bg-blue-900 bg-opacity-40 flex items-center justify-center">
                     <div className="text-white text-center p-12">
-                        <h1 className="text-5xl font-bold mb-4">Únete a Nosotros</h1>
-                        <p className="text-xl font-light">Comienza a construir tu patrimonio hoy mismo.</p>
+                        <h1 className="text-5xl font-bold mb-4">Join to the richest people</h1>
+                        <p className="text-xl font-light">Start to making money!</p>
                     </div>
                 </div>
             </div>
@@ -70,38 +70,38 @@ export default function Register({ onSwitchToLogin }) {
             <div className="w-full lg:w-1/2 flex items-center justify-center bg-gray-50 p-8">
                 <div className="max-w-md w-full">
                     <div className="text-center mb-8">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-2">Crear Cuenta</h2>
-                        <p className="text-gray-500">Completa tus datos para registrarte</p>
+                        <h2 className="text-3xl font-bold text-gray-900 mb-2">Create an account</h2>
+                        <p className="text-gray-500">Complete your data to register</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4 bg-white p-8 rounded-2xl shadow-xl">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-gray-700 text-sm font-bold mb-1">Nombre</label>
+                                <label className="block text-gray-700 text-sm font-bold mb-1">Name</label>
                                 <input
                                     type="text"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                                    placeholder="Juan"
+                                    placeholder="John"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-gray-700 text-sm font-bold mb-1">Apellidos</label>
+                                <label className="block text-gray-700 text-sm font-bold mb-1">Surnames</label>
                                 <input
                                     type="text"
                                     value={lastname}
                                     onChange={(e) => setLastname(e.target.value)}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                                    placeholder="Pérez"
+                                    placeholder="Appleseed"
                                     required
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-gray-700 text-sm font-bold mb-1">Teléfono</label>
+                            <label className="block text-gray-700 text-sm font-bold mb-1">Phone</label>
                             <input
                                 type="text"
                                 value={phone}
@@ -118,13 +118,13 @@ export default function Register({ onSwitchToLogin }) {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                                placeholder="juan@ejemplo.com"
+                                placeholder="john.appleseed@example.com"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label className="block text-gray-700 text-sm font-bold mb-1">Contraseña</label>
+                            <label className="block text-gray-700 text-sm font-bold mb-1">Password</label>
                             <input
                                 type="password"
                                 value={password}
@@ -159,7 +159,7 @@ export default function Register({ onSwitchToLogin }) {
                             onClick={onSwitchToLogin}
                             className="text-blue-600 hover:underline text-sm font-medium"
                         >
-                            ← Volver al Inicio de Sesión
+                            ← Back to Login
                         </button>
                     </div>
                 </div>

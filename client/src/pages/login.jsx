@@ -6,7 +6,7 @@ export default function Login({ onLogin, onRegister }) {
     const [error, setError] = useState('');
     const [bgImage, setBgImage] = useState('');
 
-    // Imágenes de fondo aleatorias (Temática: California)
+    // Imágenes de fondo
     const images = [
         'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?q=80&w=2000&auto=format&fit=crop', // Golden Gate
         'https://images.unsplash.com/photo-1540651810471-569907e18e90?q=80&w=2000&auto=format&fit=crop', // Hollywood Sign
@@ -39,7 +39,7 @@ export default function Login({ onLogin, onRegister }) {
                 setError(data.message);
             }
         } catch (err) {
-            setError('Error al conectar con el servidor');
+            setError('Error connecting to the server');
         }
     };
 
@@ -52,8 +52,8 @@ export default function Login({ onLogin, onRegister }) {
             >
                 <div className="absolute inset-0 bg-blue-900 bg-opacity-40 flex items-center justify-center">
                     <div className="text-white text-center p-12">
-                        <h1 className="text-5xl font-bold mb-4">Banco Seguro</h1>
-                        <p className="text-xl font-light">Tu futuro financiero, en las mejores manos.</p>
+                        <h1 className="text-5xl font-bold mb-4">DB Bank</h1>
+                        <p className="text-xl font-light">Your financial future, in our hands.</p>
                     </div>
                 </div>
             </div>
@@ -62,23 +62,23 @@ export default function Login({ onLogin, onRegister }) {
             <div className="w-full lg:w-1/2 flex items-center justify-center bg-gray-50 p-8">
                 <div className="max-w-md w-full">
                     <div className="text-center mb-10">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-2">Bienvenido de nuevo</h2>
-                        <p className="text-gray-500">Ingresa tus credenciales para acceder</p>
+                        <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome back!</h2>
+                        <p className="text-gray-500">Enter your credentials to access</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-2xl shadow-xl">
                         <div>
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Usuario / Email</label>
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Username / Email</label>
                             <input
                                 type="text"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                                placeholder="ej. juan@mail.com"
+                                placeholder="ej. john.appleseed@mail.com"
                             />
                         </div>
                         <div>
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Contraseña</label>
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
                             <input
                                 type="password"
                                 value={password}
@@ -98,17 +98,17 @@ export default function Login({ onLogin, onRegister }) {
                             type="submit"
                             className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition duration-300 font-bold shadow-lg transform hover:-translate-y-0.5"
                         >
-                            Iniciar Sesión
+                            Login
                         </button>
                     </form>
 
                     <div className="text-center mt-6">
-                        <p className="text-gray-500 text-sm mb-2">¿No tienes cuenta?</p>
+                        <p className="text-gray-500 text-sm mb-2">Don't have an account?</p>
                         <button
                             onClick={onRegister}
                             className="text-blue-600 font-bold hover:underline transition"
                         >
-                            Crear una cuenta nueva
+                            Create an account
                         </button>
                     </div>
                 </div>
