@@ -543,6 +543,7 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                                                             className="border rounded p-1 text-sm w-1/3"
                                                             value={paymentAmount}
                                                             onChange={(e) => setPaymentAmount(e.target.value)}
+                                                            onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
                                                         />
                                                         <select
                                                             className="border rounded p-1 text-sm w-2/3"
@@ -634,6 +635,7 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                                         className="border rounded p-2 w-full"
                                         placeholder="Ej. 5000"
                                         onChange={(e) => setLoanAmount(e.target.value)}
+                                        onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
                                     />
                                 </div>
                                 <div>
@@ -715,6 +717,7 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                                         className="border rounded p-2 w-full"
                                         placeholder="0.00"
                                         onChange={(e) => setTransactionAmount(e.target.value)}
+                                        onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
                                     />
                                 </div>
                             </div>
@@ -971,6 +974,7 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                                         placeholder="Ej. 5000"
                                         value={annualPremium}
                                         onChange={(e) => setAnnualPremium(e.target.value)}
+                                        onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
                                     />
                                 </div>
                                 <div>
