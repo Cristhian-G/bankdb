@@ -33,6 +33,13 @@ export default function Register({ onSwitchToLogin }) {
         setError('');
         setSuccessMessage('');
 
+        // Password validation
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(password)) {
+            setError('Password must be at least 8 characters long, contain at least one uppercase letter and one number.');
+            return;
+        }
+
         try {
             const response = await fetch('http://localhost:3000/api/auth/register', {
                 method: 'POST',
@@ -85,7 +92,11 @@ export default function Register({ onSwitchToLogin }) {
                                 <input
                                     type="text"
                                     value={name}
-                                    onChange={(e) => setName(e.target.value)}
+                                    onChange={(e) => {
+                                        if (/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/.test(e.target.value)) {
+                                            setName(e.target.value);
+                                        }
+                                    }}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                                     placeholder="John"
                                     required
@@ -96,7 +107,11 @@ export default function Register({ onSwitchToLogin }) {
                                 <input
                                     type="text"
                                     value={lastname}
-                                    onChange={(e) => setLastname(e.target.value)}
+                                    onChange={(e) => {
+                                        if (/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/.test(e.target.value)) {
+                                            setLastname(e.target.value);
+                                        }
+                                    }}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                                     placeholder="Appleseed"
                                     required
@@ -108,7 +123,11 @@ export default function Register({ onSwitchToLogin }) {
                             <input
                                 type="text"
                                 value={lastname2}
-                                onChange={(e) => setLastname2(e.target.value)}
+                                onChange={(e) => {
+                                    if (/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/.test(e.target.value)) {
+                                        setLastname2(e.target.value);
+                                    }
+                                }}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                                 placeholder="Smith"
                             />
@@ -144,9 +163,24 @@ export default function Register({ onSwitchToLogin }) {
                             <input
                                 type="text"
                                 value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
+                                onChange={(e) => {
+                                    const input = e.target.value.replace(/\D/g, '').substring(0, 10); // Only numbers, max 10 digits
+
+                                    // Format: (XXX)-XXX-XXXX
+                                    let formatted = input;
+                                    if (input.length > 6) {
+                                        formatted = `(${input.substring(0, 3)})-${input.substring(3, 6)}-${input.substring(6)}`;
+                                    } else if (input.length > 3) {
+                                        formatted = `(${input.substring(0, 3)})-${input.substring(3)}`;
+                                    } else if (input.length > 0) {
+                                        formatted = `(${input}`;
+                                    }
+
+                                    setPhone(formatted);
+                                }}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                                placeholder="555-123-4567"
+                                placeholder="(555)-123-4567"
+                                maxLength={14}
                             />
                         </div>
 
@@ -172,6 +206,7 @@ export default function Register({ onSwitchToLogin }) {
                                 placeholder="••••••••"
                                 required
                             />
+                            <p className="text-xs text-gray-400 mt-1">Min. 8 chars, 1 uppercase, 1 number.</p>
                         </div>
 
                         {error && (

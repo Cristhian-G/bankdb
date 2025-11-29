@@ -62,6 +62,21 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ success: false, message: 'CURP cannot exceed 18 characters' });
         }
 
+        // Name validation (Letters and accents only)
+        const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+        if (!nameRegex.test(name) || !nameRegex.test(lastname) || (lastname2 && !nameRegex.test(lastname2))) {
+            return res.status(400).json({ success: false, message: 'Names must only contain letters and accents.' });
+        }
+
+        // Password validation
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(password)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be at least 8 characters long and include at least one uppercase letter and one number.'
+            });
+        }
+
         const [userExists] = await db.query('SELECT * FROM clients WHERE email = ? OR curp = ?', [email, curp]);
         if (userExists.length > 0) {
             if (userExists[0].email === email) {

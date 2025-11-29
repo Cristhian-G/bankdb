@@ -351,6 +351,11 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                                     onClick={(e) => {
                                         e.stopPropagation();
 
+                                        if (accounts.length <= 1) {
+                                            alert("You cannot delete your only account. You must have at least one active account.");
+                                            return;
+                                        }
+
                                         if (cuenta.acc_type === 'CREDIT') {
                                             // Check debt from loans list
                                             const creditInfo = loans.find(l => l.acc_id === cuenta.acc_id && l.isCreditCard);
@@ -446,6 +451,10 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                                         </button>
                                         <button
                                             onClick={() => {
+                                                if (cards.length <= 1) {
+                                                    alert("You cannot delete your only card. You must have at least one active card.");
+                                                    return;
+                                                }
                                                 if (!confirm("Are you sure you want to delete this card?")) return;
                                                 fetch(`http://localhost:3000/api/cards/${card.card_num}`, { method: 'DELETE' })
                                                     .then(res => res.json())
@@ -1029,6 +1038,10 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                                         <div>
                                             <label className="block text-gray-500 text-xs font-bold uppercase">Email</label>
                                             <p className="text-gray-800 font-medium">{user.email}</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-gray-500 text-xs font-bold uppercase">CURP</label>
+                                            <p className="text-gray-800 font-medium">{user.curp || 'Not registered'}</p>
                                         </div>
                                         <div>
                                             <label className="block text-gray-500 text-xs font-bold uppercase">Phone</label>
