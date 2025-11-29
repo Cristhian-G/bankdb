@@ -4,6 +4,7 @@ export default function Register({ onSwitchToLogin }) {
     const [name, setName] = useState('');
     const [lastname, setLastname] = useState('');
     const [lastname2, setLastname2] = useState('');
+    const [curp, setCurp] = useState('');
     const [address, setAddress] = useState('');
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
@@ -36,7 +37,7 @@ export default function Register({ onSwitchToLogin }) {
             const response = await fetch('http://localhost:3000/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, lastname, lastname2, address, phone, email, password })
+                body: JSON.stringify({ name, lastname, lastname2, curp, address, phone, email, password })
             });
 
             const data = await response.json();
@@ -110,6 +111,19 @@ export default function Register({ onSwitchToLogin }) {
                                 onChange={(e) => setLastname2(e.target.value)}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                                 placeholder="Smith"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-gray-700 text-sm font-bold mb-1">CURP</label>
+                            <input
+                                type="text"
+                                value={curp}
+                                onChange={(e) => setCurp(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                                placeholder="CURP123456HDFR01"
+                                required
+                                maxLength={18}
                             />
                         </div>
 

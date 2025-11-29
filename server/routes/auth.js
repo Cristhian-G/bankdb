@@ -55,19 +55,28 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-    const { name, lastname, lastname2, email, password, address, phone } = req.body;
+    const { name, lastname, lastname2, curp, email, password, address, phone } = req.body;
 
     try {
-        const [userExists] = await db.query('SELECT * FROM clients WHERE email = ?', [email]);
+        if (curp && curp.length > 18) {
+            return res.status(400).json({ success: false, message: 'CURP cannot exceed 18 characters' });
+        }
+
+        const [userExists] = await db.query('SELECT * FROM clients WHERE email = ? OR curp = ?', [email, curp]);
         if (userExists.length > 0) {
-            return res.status(400).json({ success: false, message: 'The email is already registered' });
+            if (userExists[0].email === email) {
+                return res.status(400).json({ success: false, message: 'The email is already registered' });
+            }
+            if (userExists[0].curp === curp) {
+                return res.status(400).json({ success: false, message: 'The CURP is already registered' });
+            }
         }
 
         const hashedPassword = hashPassword(password);
 
         // Usamos first_name en lugar de name
-        const sql = 'INSERT INTO clients (first_name, lastname, lastname2, email, password, address, phone) VALUES (?, ?, ?, ?, ?, ?, ?)';
-        const [result] = await db.query(sql, [name, lastname, lastname2, email, hashedPassword, address, phone]);
+        const sql = 'INSERT INTO clients (first_name, lastname, lastname2, curp, email, password, address, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+        const [result] = await db.query(sql, [name, lastname, lastname2, curp, email, hashedPassword, address, phone]);
 
         // Crear cuenta por defecto (Ahorro MXN) -> account_type_id = 1 (SAVINGS)
         const clientId = result.insertId;
