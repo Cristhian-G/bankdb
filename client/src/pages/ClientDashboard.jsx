@@ -630,7 +630,12 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                                                         <button
                                                             onClick={() => {
                                                                 setSelectedLoanId(selectedLoanId === loan.loan_id ? null : loan.loan_id);
-                                                                setPaymentAmount('');
+                                                                // Default to full debt for credit cards
+                                                                if (loan.isCreditCard) {
+                                                                    setPaymentAmount(loan.cap_balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                                                                } else {
+                                                                    setPaymentAmount('');
+                                                                }
                                                                 setPaymentAccId('');
                                                             }}
                                                             className={`text-xs text-white px-2 py-1 rounded mt-1 ${loan.isCreditCard ? 'bg-purple-500 hover:bg-purple-600' : 'bg-green-500 hover:bg-green-600'}`}
@@ -665,9 +670,17 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                                                         {loan.isCreditCard ? 'Pay Credit Card' : 'Make a Payment'}
                                                     </p>
                                                     {loan.isCreditCard && (
-                                                        <p className="text-xs text-gray-500 mb-2">
-                                                            Minimum Payment (5%): <span className="font-bold text-gray-700">${(loan.cap_balance * 0.05).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                        </p>
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <p className="text-xs text-gray-500">
+                                                                Total Debt: <span className="font-bold text-gray-700">${loan.cap_balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                            </p>
+                                                            <button
+                                                                onClick={() => setPaymentAmount(((loan.cap_balance * 0.05) * 1.05).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}
+                                                                className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 font-bold"
+                                                            >
+                                                                Pay Minimum (${((loan.cap_balance * 0.05) * 1.05).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} incl. 5% interest)
+                                                            </button>
+                                                        </div>
                                                     )}
                                                     <div className="flex gap-2 mb-2">
                                                         {loan.isCreditCard ? (
@@ -697,7 +710,7 @@ export default function ClientDashboard({ user, onLogout, onUpdateUser }) {
                                                         >
                                                             <option value="">Select Account</option>
                                                             {accounts
-                                                                .filter(acc => acc.acc_type !== 'Credit') // No pagar con crédito
+                                                                .filter(acc => acc.account_type_id !== 3) // Do not pay with credit (ID 3)
                                                                 .map(acc => (
                                                                     <option key={acc.acc_id} value={acc.acc_id}>
                                                                         {acc.acc_type} - ${acc.balance} ({acc.currency})
