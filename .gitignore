@@ -1,0 +1,8 @@
+*.env
+README.md
+*.json
+_metadata.json
+*.linux-x64-*
+esbuild
+.package-lock.json
+client/node_modules
